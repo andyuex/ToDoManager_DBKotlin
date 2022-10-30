@@ -9,6 +9,7 @@ import android.widget.CheckBox
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import es.unex.giiis.asee.todomanager_dbkotlin.database.ToDoItemCRUD
+import es.unex.giiis.asee.todomanager_dbkotlin.roomdb.ToDoDatabase
 
 class ToDoAdapter     // Provide a suitable constructor (depends on the kind of dataset)
     (private var mContext: Context, private val listener: OnItemClickListener) :
@@ -79,29 +80,32 @@ class ToDoAdapter     // Provide a suitable constructor (depends on the kind of 
         fun bind(toDoItem: ToDoItem, listener: OnItemClickListener) {
 
             // - Display Title in TextView
-            title.text = toDoItem.getTitle()
+            title.text = toDoItem.title
 
             // - Display Priority in a TextView
-            priorityView.text = toDoItem.getPriority().toString()
+            priorityView.text = toDoItem.priority.toString()
 
             //  - Display Time and Date.
             // Hint - use ToDoItem.FORMAT.format(toDoItem.getDate()) to get date and time String
-            dateView.text = ToDoItem.FORMAT.format(toDoItem.getDate())
+            dateView.text = ToDoItem.FORMAT.format(toDoItem.date)
 
             //  - Set up Status CheckBox
-            statusView.isChecked = toDoItem.getStatus() === ToDoItem.Status.DONE
-            if (toDoItem.getStatus() === ToDoItem.Status.DONE) title.setBackgroundColor(Color.GREEN)
+            statusView.isChecked = toDoItem.status === ToDoItem.Status.DONE
+            if (toDoItem.status === ToDoItem.Status.DONE) title.setBackgroundColor(Color.GREEN)
             statusView.setOnCheckedChangeListener { _, isChecked -> //  Set up and implement an OnCheckedChangeListener
                 // is called when the user toggles the status checkbox
                 if (isChecked) {
-                    toDoItem.setStatus(ToDoItem.Status.DONE)
+                    toDoItem.status = ToDoItem.Status.DONE
                     title.setBackgroundColor(Color.GREEN)
                 } else {
-                    toDoItem.setStatus(ToDoItem.Status.NOTDONE)
+                    toDoItem.status = ToDoItem.Status.NOTDONE
                     title.setBackgroundColor(Color.WHITE)
                 }
-                val crud = ToDoItemCRUD.getInstance(mContext)
-                crud?.updateStatus(toDoItem.getID(), toDoItem.getStatus())
+//                val crud = ToDoItemCRUD.getInstance(mContext)
+//                crud?.updateStatus(toDoItem.getID(), toDoItem.getStatus())
+                AppExecutors.instance?.diskIO()?.execute {
+                    ToDoDatabase.getInstance(mContext)?.dao?.update(toDoItem)
+                }
             }
             itemView.setOnClickListener { listener.onItemClick(toDoItem) }
         }

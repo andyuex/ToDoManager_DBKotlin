@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
-import es.unex.giiis.asee.todomanager_dbkotlin.database.ToDoItemCRUD
+import es.unex.giiis.asee.todomanager_dbkotlin.roomdb.ToDoDatabase
 
 class ToDoManagerActivity : AppCompatActivity() {
     private var mRecyclerView: RecyclerView? = null
@@ -43,10 +43,10 @@ class ToDoManagerActivity : AppCompatActivity() {
         val view = findViewById<View>(android.R.id.content)
         mAdapter = ToDoAdapter(this, object : ToDoAdapter.OnItemClickListener {
             override fun onItemClick(item: ToDoItem?) {
-                Log.i("onItemClick", "Item " + item?.mTitle + " clicked")
+                Log.i("onItemClick", "Item " + item?.title + " clicked")
                 Snackbar.make(
                     mRecyclerView!!,
-                    "Item " + item?.mTitle + " clicked",
+                    "Item " + item?.title + " clicked",
                     Snackbar.LENGTH_SHORT
                 ).show()
             }
@@ -54,7 +54,9 @@ class ToDoManagerActivity : AppCompatActivity() {
 
         // - Attach the adapter to the RecyclerView
         mRecyclerView?.adapter = mAdapter
-        val crud = ToDoItemCRUD.getInstance(this)
+
+//        val crud = ToDoItemCRUD.getInstance(this)
+        ToDoDatabase.getInstance(this)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -69,16 +71,22 @@ class ToDoManagerActivity : AppCompatActivity() {
             if (resultCode == RESULT_OK) {
                 val item = ToDoItem(data!!)
 
-                //insert into DB
-                val crud = ToDoItemCRUD.getInstance(this)
-                val id = crud?.insert(item)
+                AppExecutors.instance?.diskIO()?.execute {
+                    //insert into DB
+//                val crud = ToDoItemCRUD.getInstance(this)
+//                val id = crud?.insert(item)
+                    val database = ToDoDatabase.getInstance(this)
+                    val id = database?.dao?.insert(item)
 
-                if (id != null) {
-                    //update item ID
-                    item.setID(id)
+                    if (id != null) {
+                        //update item ID
+                        item.id = id
 
-                    //insert into adapter list
-                    mAdapter?.add(item)
+                        //insert into adapter list
+                        runOnUiThread {
+                            mAdapter?.add(item)
+                        }
+                    }
                 }
             }
         }
@@ -98,8 +106,9 @@ class ToDoManagerActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        val crud = ToDoItemCRUD.getInstance(this)
-        crud?.close()
+//        val crud = ToDoItemCRUD.getInstance(this)
+//        crud?.close()
+        ToDoDatabase.getInstance(this)?.close()
         super.onDestroy()
     }
 
@@ -113,9 +122,14 @@ class ToDoManagerActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             MENU_DELETE -> {
-                val crud = ToDoItemCRUD.getInstance(this)
-                crud?.deleteAll()
-                mAdapter?.clear()
+//                val crud = ToDoItemCRUD.getInstance(this)
+//                crud?.deleteAll()
+                AppExecutors.instance?.diskIO()?.execute {
+                    ToDoDatabase.getInstance(this)?.dao?.deleteAll()
+                    runOnUiThread {
+                        mAdapter?.clear()
+                    }
+                }
                 true
             }
             MENU_DUMP -> {
@@ -137,10 +151,16 @@ class ToDoManagerActivity : AppCompatActivity() {
 
     // Load stored ToDoItems
     private fun loadItems() {
-        val crud = ToDoItemCRUD.getInstance(this)
-        val items = crud?.getAll()
-        if (items != null) {
-            mAdapter?.load(items as MutableList<ToDoItem>)
+//        val crud = ToDoItemCRUD.getInstance(this)
+//        val items = crud?.getAll()
+
+        AppExecutors.instance?.diskIO()?.execute {
+            val items = ToDoDatabase.getInstance(this)?.dao?.getAll()
+            if (items != null) {
+                runOnUiThread {
+                    mAdapter?.load(items as MutableList<ToDoItem>)
+                }
+            }
         }
     }
 

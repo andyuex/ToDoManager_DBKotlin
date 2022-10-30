@@ -53,10 +53,10 @@ class ToDoItemCRUD private constructor(context: Context) {
 
         // Create a new map of values, where column names are the keys
         val values = ContentValues()
-        values.put(DBContract.TodoItem.COLUMN_NAME_TITLE, item.getTitle())
-        values.put(DBContract.TodoItem.COLUMN_NAME_PRIORITY, item.getPriority().name)
-        values.put(DBContract.TodoItem.COLUMN_NAME_STATUS, item.getStatus().name)
-        values.put(DBContract.TodoItem.COLUMN_NAME_DATE, ToDoItem.FORMAT.format(item.getDate()))
+        values.put(DBContract.TodoItem.COLUMN_NAME_TITLE, item.title)
+        values.put(DBContract.TodoItem.COLUMN_NAME_PRIORITY, item.priority.name)
+        values.put(DBContract.TodoItem.COLUMN_NAME_STATUS, item.status.name)
+        values.put(DBContract.TodoItem.COLUMN_NAME_DATE, ToDoItem.FORMAT.format(item.date))
 
 
         // Insert the new row, returning the primary key value of the new row

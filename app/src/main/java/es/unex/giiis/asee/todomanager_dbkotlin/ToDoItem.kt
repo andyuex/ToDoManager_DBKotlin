@@ -1,9 +1,14 @@
 package es.unex.giiis.asee.todomanager_dbkotlin
 
 import android.content.Intent
+import androidx.room.*
+import es.unex.giiis.asee.todomanager_dbkotlin.roomdb.DateConverter
+import es.unex.giiis.asee.todomanager_dbkotlin.roomdb.PriorityConverter
+import es.unex.giiis.asee.todomanager_dbkotlin.roomdb.StatusConverter
 import java.text.SimpleDateFormat
 import java.util.*
 
+@Entity(tableName = "todo")
 class ToDoItem {
     enum class Priority {
         LOW, MED, HIGH
@@ -13,94 +18,77 @@ class ToDoItem {
         NOTDONE, DONE
     }
 
-    var mID: Long = 0
-    var mTitle: String? = String()
-    var mPriority = Priority.LOW
-    var mStatus = Status.NOTDONE
-    var mDate = Date()
+    @PrimaryKey(autoGenerate = true)
+    var id: Long = 0
+    @ColumnInfo(name = "title")
+    var title: String? = String()
+    @TypeConverters(PriorityConverter::class)
+    var priority = Priority.LOW
+    @TypeConverters(StatusConverter::class)
+    var status = Status.NOTDONE
+    @TypeConverters(DateConverter::class)
+    var date = Date()
 
+    @Ignore
     internal constructor(title: String?, priority: Priority, status: Status, date: Date) {
-        mTitle = title
-        mPriority = priority
-        mStatus = status
-        mDate = date
+        this.title = title
+        this.priority = priority
+        this.status = status
+        this.date = date
     }
 
-    constructor(ID: Long, title: String?, priority: String?, status: String?, date: String?) {
-        mID = ID
-        mTitle = title
-        mPriority = Priority.valueOf(priority ?: Priority.MED.toString())
-        mStatus = Status.valueOf(status ?: Status.NOTDONE.toString())
-        mDate = FORMAT.parse(date ?: Date().toString()) as Date
+    @Ignore
+    constructor(id: Long, title: String?, priority: String?, status: String?, date: String?) {
+        this.id = id
+        this.title = title
+        this.priority = Priority.valueOf(priority ?: Priority.MED.toString())
+        this.status = Status.valueOf(status ?: Status.NOTDONE.toString())
+        this.date = FORMAT.parse(date ?: Date().toString()) as Date
     }
 
     // Create a new ToDoItem from data packaged in an Intent
+    @Ignore
     internal constructor(intent: Intent) {
-        mID = intent.getLongExtra(ID, 0) //TODO think best default value for ID
-        mTitle = intent.getStringExtra(TITLE)
-        mPriority = Priority.valueOf(intent.getStringExtra(PRIORITY) ?: Priority.MED.toString())
-        mStatus = Status.valueOf(intent.getStringExtra(STATUS) ?: Status.NOTDONE.toString())
-        mDate = FORMAT.parse(intent.getStringExtra(DATE) ?: Date().toString()) as Date
+        id = intent.getLongExtra(ID, 0) //TODO think best default value for ID
+        title = intent.getStringExtra(TITLE)
+        priority = Priority.valueOf(intent.getStringExtra(PRIORITY) ?: Priority.MED.toString())
+        status = Status.valueOf(intent.getStringExtra(STATUS) ?: Status.NOTDONE.toString())
+        date = FORMAT.parse(intent.getStringExtra(DATE) ?: Date().toString()) as Date
     }
 
-    fun getID(): Long {
-        return mID
-    }
-
-    fun setID(ID: Long) {
-        mID = ID
-    }
-
-    fun getTitle(): String? {
-        return mTitle
-    }
-
-    fun setTitle(title: String) {
-        mTitle = title
-    }
-
-    fun getPriority(): Priority {
-        return mPriority
-    }
-
-    fun setPriority(priority: Priority) {
-        mPriority = priority
-    }
-
-    fun getStatus(): Status {
-        return mStatus
-    }
-
-    fun setStatus(status: Status) {
-        mStatus = status
-    }
-
-    fun getDate(): Date {
-        return mDate
-    }
-
-    fun setDate(date: Date) {
-        mDate = date
+    constructor(id: Long, title: String?, priority: Priority?, status: Status?, date: Date?) {
+        this.id = id
+        this.date = date!!
+        this.status = status!!
+        this.title = title
+        this.priority = priority!!
     }
 
     override fun toString(): String {
-        return (mID.toString() + ITEM_SEP + mTitle + ITEM_SEP + mPriority + ITEM_SEP + mStatus + ITEM_SEP
-                + FORMAT.format(mDate))
+        return (id.toString() + ITEM_SEP + title + ITEM_SEP + priority + ITEM_SEP + status + ITEM_SEP
+                + FORMAT.format(date))
     }
 
     fun toLog(): String {
-        return ("ID: " + mID + ITEM_SEP + "Title:" + mTitle + ITEM_SEP + "Priority:" + mPriority
-                + ITEM_SEP + "Status:" + mStatus + ITEM_SEP + "Date:"
-                + FORMAT.format(mDate))
+        return ("ID: " + id + ITEM_SEP + "Title:" + title + ITEM_SEP + "Priority:" + priority
+                + ITEM_SEP + "Status:" + status + ITEM_SEP + "Date:"
+                + FORMAT.format(date))
     }
 
     companion object {
-        val ITEM_SEP = System.getProperty("line.separator")
+        @Ignore
+        val ITEM_SEP: String = System.getProperty("line.separator") as String
+        @Ignore
         const val ID = "ID"
+        @Ignore
         const val TITLE = "title"
+        @Ignore
         const val PRIORITY = "priority"
+        @Ignore
         const val STATUS = "status"
+        @Ignore
         const val DATE = "date"
+        @Ignore
         val FORMAT = SimpleDateFormat(
             "yyyy-MM-dd HH:mm:ss", Locale.US
         )
